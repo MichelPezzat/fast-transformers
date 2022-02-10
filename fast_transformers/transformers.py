@@ -12,11 +12,26 @@ In all cases the batch dimension is first and the sequence dimension is second.
 
 import torch
 from torch.nn import Dropout, LayerNorm, Linear, Module, ModuleList
+from fast_transformer.ops import Conv1D, ACT_FNS, LayerNorm
 import torch.nn.functional as F
 
 from .events import EventDispatcher
 from .masking import FullMask, LengthMask
 
+
+
+class MLP(nn.Module):
+    def __init__(self, n_in, n_state, resid_dropout=0.0, afn='quick_gelu', zero_out=False, init_scale=1.0):
+        super().__init__()
+        self.c_fc = Conv1D(n_in, n_state, init_scale=init_scale)
+        self.c_proj = Conv1D(n_state, n_in, zero_out, init_scale=init_scale)
+        self.act = ACT_FNS[afn]
+        self.resid_dropout = nn.Dropout(resid_dropout) if resid_dropout > 0.0 else lambda x: x
+
+    def forward(self, x):
+        m = self.act(self.c_fc(x))
+        m = self.c_proj(m)
+        return self.resid_dropout(m)
 
 class TransformerEncoderLayer(Module):
     """Self attention and feed forward network with skip connections.
@@ -39,17 +54,23 @@ class TransformerEncoderLayer(Module):
                           module for dispatching events (default: the default
                           global dispatcher)
     """
-    def __init__(self, attention, d_model, d_ff=None, dropout=0.1,
-                 activation="relu", event_dispatcher=""):
+    def __init__(self, attention, d_model,  dropout=0.1,
+                 activation="relu", event_dispatcher="", zero_out=False,
+                 init_scale=1.0):
         super(TransformerEncoderLayer, self).__init__()
-        d_ff = d_ff or 4*d_model
+        #d_ff = d_ff or 4*d_model
         self.attention = attention
-        self.linear1 = Linear(d_model, d_ff)
-        self.linear2 = Linear(d_ff, d_model)
+        #self.linear1 = Linear(d_model, d_ff)
+        #self.linear2 = Linear(d_ff, d_model)
         self.norm1 = LayerNorm(d_model)
         self.norm2 = LayerNorm(d_model)
-        self.dropout = Dropout(dropout)
-        self.activation = getattr(F, activation)
+        #self.dropout = Dropout(dropout)
+        self.dropout = nn.Dropout(dropout) if dropout > 0.0 else lambda x: x
+        #self.activation = getattr(F, activation)
+        self.mlp = MLP(n_in=d_model, n_state=int(m_mlp * d_model),
+                       resid_dropout=dropout,
+                       afn=activation,
+                       zero_out=zero_out, init_scale=init_scale)
         self.event_dispatcher = EventDispatcher.get(event_dispatcher)
 
     def forward(self, x, attn_mask=None, length_mask=None):
@@ -74,19 +95,22 @@ class TransformerEncoderLayer(Module):
             LengthMask(x.new_full((N,), L, dtype=torch.int64))
 
         # Run self attention and add it to the input
-        x = x + self.dropout(self.attention(
-            x, x, x,
+        a =  self.dropout(self.attention(
+            self.norm1(x),
             attn_mask=attn_mask,
             query_lengths=length_mask,
             key_lengths=length_mask
         ))
 
         # Run the fully connected part of the layer
-        y = x = self.norm1(x)
-        y = self.dropout(self.activation(self.linear1(y)))
-        y = self.dropout(self.linear2(y))
+        y = self.mlp(self.norm2(x + a))
+        #y = self.dropout(self.activation(self.linear1(y)))
+        #y = self.dropout(self.linear2(y))
 
-        return self.norm2(x+y)
+        #a = self.attn(self.ln_0(x), encoder_kv, sample)
+        #m = self.mlp(self.ln_1(x + a))
+
+        return x+y+a
 
 
 class TransformerEncoder(Module):

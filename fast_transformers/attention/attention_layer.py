@@ -14,6 +14,7 @@ attention layer.
 """
 
 from torch.nn import Linear, Module
+from fast_transformers.ops import Conv1D
 
 from ..events import EventDispatcher, QKVEvent
 
@@ -41,7 +42,7 @@ class AttentionLayer(Module):
                           global dispatcher)
     """
     def __init__(self, attention, d_model, n_heads, d_keys=None,
-                 d_values=None, event_dispatcher=""):
+                 d_values=None, event_dispatcher="", zero_out=False, init_scale=1.0):
         super(AttentionLayer, self).__init__()
 
         # Fill d_keys and d_values
@@ -49,14 +50,16 @@ class AttentionLayer(Module):
         d_values = d_values or (d_model//n_heads)
 
         self.inner_attention = attention
-        self.query_projection = Linear(d_model, d_keys * n_heads)
-        self.key_projection = Linear(d_model, d_keys * n_heads)
-        self.value_projection = Linear(d_model, d_values * n_heads)
-        self.out_projection = Linear(d_values * n_heads, d_model)
+        #self.query_projection = Linear(d_model, d_keys * n_heads)
+        #self.key_projection = Linear(d_model, d_keys * n_heads)
+        #self.value_projection = Linear(d_model, d_values * n_heads)
+        self.c_attn = Conv1D(d_model, d_keys * 3, init_scale=init_scale)
+        #self.out_projection = Linear(d_values * n_heads, d_model)
+        self.c_proj = Conv1D(d_values, d_model, zero_out, init_scale=init_scale)
         self.n_heads = n_heads
         self.event_dispatcher = EventDispatcher.get(event_dispatcher)
 
-    def forward(self, queries, keys, values, attn_mask, query_lengths,
+    def forward(self, x, attn_mask, query_lengths,
                 key_lengths):
         """Apply attention to the passed in queries/keys/values after
         projecting them to multiple heads.
@@ -87,14 +90,21 @@ class AttentionLayer(Module):
             The new value for each query as a tensor of shape (N, L, D).
         """
         # Extract the dimensions into local variables
-        N, L, _ = queries.shape
-        _, S, _ = keys.shape
-        H = self.n_heads
+        N, L, _ = x.shape
+
 
         # Project the queries/keys/values
-        queries = self.query_projection(queries).view(N, L, H, -1)
-        keys = self.key_projection(keys).view(N, S, H, -1)
-        values = self.value_projection(values).view(N, S, H, -1)
+        #queries = self.query_projection(queries).view(N, L, H, -1)
+        #keys = self.key_projection(keys).view(N, S, H, -1)
+        #values = self.value_projection(values).view(N, S, H, -1)
+
+        x = self.c_attn(x)
+
+        queries, keys, values = x.chunk(3, dim=2)
+        queries = queries.view(N, L, H, -1)
+        keys = keys.view(N, L, H, -1)
+        values = values.view(N, L, H, -1)
+
 
         # Let the world know of the qkv
         self.event_dispatcher.dispatch(QKVEvent(self, queries, keys, values))
@@ -110,4 +120,4 @@ class AttentionLayer(Module):
         ).view(N, L, -1)
 
         # Project the output and return
-        return self.out_projection(new_values)
+        return self.c_proj(new_values)

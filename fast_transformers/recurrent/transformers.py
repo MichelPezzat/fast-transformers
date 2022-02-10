@@ -19,12 +19,25 @@ import warnings
 
 import torch
 from torch.nn import Dropout, LayerNorm, Linear, Module, ModuleList
+from fast_transformer.ops import Conv1D, ACT_FNS, LayerNorm
 import torch.nn.functional as F
 
 from ..events import EventDispatcher
 from ..masking import LengthMask
 from ._utils import check_state
 
+class MLP(nn.Module):
+    def __init__(self, n_in, n_state, resid_dropout=0.0, afn='quick_gelu', zero_out=False, init_scale=1.0):
+        super().__init__()
+        self.c_fc = Conv1D(n_in, n_state, init_scale=init_scale)
+        self.c_proj = Conv1D(n_state, n_in, zero_out, init_scale=init_scale)
+        self.act = ACT_FNS[afn]
+        self.resid_dropout = nn.Dropout(resid_dropout) if resid_dropout > 0.0 else lambda x: x
+
+    def forward(self, x):
+        m = self.act(self.c_fc(x))
+        m = self.c_proj(m)
+        return self.resid_dropout(m)
 
 class RecurrentTransformerEncoderLayer(Module):
     """Attention to the previous inputs and feed forward with skip connections.
@@ -47,17 +60,23 @@ class RecurrentTransformerEncoderLayer(Module):
                           module for dispatching events (default: the default
                           global dispatcher)
     """
-    def __init__(self, attention, d_model, d_ff=None, dropout=0.1,
+    def __init__(self, attention, d_model, dropout=0.1,
                  activation="relu", event_dispatcher=""):
         super(RecurrentTransformerEncoderLayer, self).__init__()
-        d_ff = d_ff or 4*d_model
+        #d_ff = d_ff or 4*d_model
         self.attention = attention
-        self.linear1 = Linear(d_model, d_ff)
-        self.linear2 = Linear(d_ff, d_model)
+        #self.linear1 = Linear(d_model, d_ff)
+        #self.linear2 = Linear(d_ff, d_model)
         self.norm1 = LayerNorm(d_model)
         self.norm2 = LayerNorm(d_model)
-        self.dropout = Dropout(dropout)
-        self.activation = F.relu if activation == "relu" else F.gelu
+        #self.dropout = Dropout(dropout)
+        self.dropout = nn.Dropout(dropout) if dropout > 0.0 else lambda x: x
+        #self.activation = F.relu if activation == "relu" else F.gelu
+        self.mlp = MLP(n_in=d_model, n_state=int(m_mlp * d_model),
+                       resid_dropout=dropout,
+                       afn=activation,
+                       zero_out=zero_out, init_scale=init_scale)
+
         self.event_dispatcher = EventDispatcher.get(event_dispatcher)
 
     def forward(self, x, state=None, memory=None):
@@ -75,15 +94,18 @@ class RecurrentTransformerEncoderLayer(Module):
         state = check_state(state, memory)
 
         # Run the self attention and add it to the input
-        x2, state = self.attention(x, x, x, state)
-        x = x + self.dropout(x2)
+        a, state = self.attention(self.norm1(x), state)
+        a =  self.dropout(a)
 
         # Run the fully connected part of the layer
-        y = x = self.norm1(x)
-        y = self.dropout(self.activation(self.linear1(y)))
-        y = self.dropout(self.linear2(y))
+        y = self.mlp(self.norm2(x + a))
+        #y = x = self.norm(x)
+        #y = self.dropout(self.activation(self.linear1(y)))
+        #y = self.dropout(self.linear2(y))
 
-        return self.norm2(x+y), state
+
+
+        return x+y+a, state
 
 
 class RecurrentTransformerEncoder(Module):

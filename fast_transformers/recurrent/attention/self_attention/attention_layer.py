@@ -12,6 +12,7 @@ from torch.nn import Linear, Module
 
 from ....events import EventDispatcher
 from ..._utils import check_state
+from fast_transformers.ops import Conv1D
 
 
 class RecurrentAttentionLayer(Module):
@@ -44,10 +45,12 @@ class RecurrentAttentionLayer(Module):
         d_values = d_values or (d_model//n_heads)
 
         self.inner_attention = attention
-        self.query_projection = Linear(d_model, d_keys * n_heads)
-        self.key_projection = Linear(d_model, d_keys * n_heads)
-        self.value_projection = Linear(d_model, d_values * n_heads)
-        self.out_projection = Linear(d_values * n_heads, d_model)
+        #self.query_projection = Linear(d_model, d_keys * n_heads)
+        #self.key_projection = Linear(d_model, d_keys * n_heads)
+        #self.value_projection = Linear(d_model, d_values * n_heads)
+        self.c_attn = Conv1D(d_model, d_keys * 3, init_scale=init_scale)
+        #self.out_projection = Linear(d_values * n_heads, d_model)
+        self.c_proj = Conv1D(d_values, d_model, zero_out, init_scale=init_scale)
         self.n_heads = n_heads
         self.event_dispatcher = EventDispatcher.get(event_dispatcher)
 
@@ -77,9 +80,11 @@ class RecurrentAttentionLayer(Module):
         state = check_state(state, memory)
 
         # Project the queries/keys/values
-        query = self.query_projection(query)
-        key = self.key_projection(key)
-        value = self.value_projection(value)
+        #query = self.query_projection(query)
+        #key = self.key_projection(key)
+        #value = self.value_projection(value)
+
+        query, key, value = x.chunk(3, dim=2)
 
         # Reshape them into many heads and compute the attention
         N, D = query.shape
@@ -93,4 +98,4 @@ class RecurrentAttentionLayer(Module):
         new_value = new_value.view(N, -1)
 
         # Project the output and return
-        return self.out_projection(new_value), state
+        return self.c_proj(new_value), state

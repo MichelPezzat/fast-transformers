@@ -34,7 +34,9 @@ class BaseTransformerBuilder(BaseBuilder):
         self._n_heads = 4
         self._d_query = 64
         self._d_value = 64
-        self._d_ff = 1024
+        self._d_model = None
+        self._zero_out=False
+        self._init_scale=1.0
         self._dropout = 0.1
         self._activation = "relu"
         self._final_norm = True
@@ -58,15 +60,6 @@ class BaseTransformerBuilder(BaseBuilder):
     def n_heads(self, val):
         self._n_heads = val
 
-    @property
-    def feed_forward_dimensions(self):
-        """The dimensions of the fully connected layer in the transformer
-        layers."""
-        return self._d_ff
-
-    @feed_forward_dimensions.setter
-    def feed_forward_dimensions(self, val):
-        self._d_ff = val
 
     @property
     def query_dimensions(self):
@@ -85,6 +78,30 @@ class BaseTransformerBuilder(BaseBuilder):
     @value_dimensions.setter
     def value_dimensions(self, val):
         self._d_value = val
+
+    @property
+    def model_dimensions(self):
+        return self._d_model or self.value_dimensions * self.n_heads
+
+    @model_dimensions.setter
+    def model_dimensions(self, n):
+        self._d_model = n
+
+    @property
+    def zero_out(self):
+        return self._zero_out
+
+    @zero_out.setter
+    def zero_out(self, val):
+        self._zero_out = val
+
+    @property
+    def init_scale(self):
+        return self._init_scale
+
+    @init_scale.setter
+    def init_scale(self, val):
+        self._init_scale = val
 
     @property
     def dropout(self):
@@ -217,7 +234,7 @@ class BaseTransformerEncoderBuilder(BaseTransformerBuilder):
         EncoderLayer = self._get_encoder_layer_class()
         Attention = self._get_attention_layer_class()
 
-        model_dimensions = self.value_dimensions*self.n_heads
+        model_dimensions = self.model_dimensions
         return Encoder(
             [
                 EncoderLayer(
@@ -228,9 +245,10 @@ class BaseTransformerEncoderBuilder(BaseTransformerBuilder):
                         d_keys=self.query_dimensions,
                         d_values=self.value_dimensions,
                         event_dispatcher=self.event_dispatcher
+                        zero_out=self.zero_out,
+                        init_scale=self.init_scale
                     ),
                     model_dimensions,
-                    self.feed_forward_dimensions,
                     self.dropout,
                     self.activation,
                     event_dispatcher=self.event_dispatcher
