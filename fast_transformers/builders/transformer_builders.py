@@ -244,7 +244,7 @@ class BaseTransformerEncoderBuilder(BaseTransformerBuilder):
                         self.n_heads,
                         d_keys=self.query_dimensions,
                         d_values=self.value_dimensions,
-                        event_dispatcher=self.event_dispatcher
+                        event_dispatcher=self.event_dispatcher,
                         zero_out=self.zero_out,
                         init_scale=self.init_scale
                     ),
