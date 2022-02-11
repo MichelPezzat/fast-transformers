@@ -35,6 +35,7 @@ class BaseTransformerBuilder(BaseBuilder):
         self._d_query = 64
         self._d_value = 64
         self._d_model = None
+        self._d_ff = 1024
         self._zero_out=False
         self._init_scale=1.0
         self._dropout = 0.1
@@ -86,6 +87,16 @@ class BaseTransformerBuilder(BaseBuilder):
     @model_dimensions.setter
     def model_dimensions(self, n):
         self._d_model = n
+
+    @property
+    def feed_forward_dimensions(self):
+        """The dimensions of the fully connected layer in the transformer
+        layers."""
+        return self._d_ff
+
+    @feed_forward_dimensions.setter
+    def feed_forward_dimensions(self, val):
+        self._d_ff = val
 
     @property
     def zero_out(self):
@@ -249,6 +260,7 @@ class BaseTransformerEncoderBuilder(BaseTransformerBuilder):
                         init_scale=self.init_scale
                     ),
                     model_dimensions,
+                    self.feed_forward_dimensions,
                     self.dropout,
                     self.activation,
                     event_dispatcher=self.event_dispatcher
