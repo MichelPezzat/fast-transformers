@@ -26,7 +26,7 @@ from ..events import EventDispatcher
 from ..masking import LengthMask
 from ._utils import check_state
 
-class MLP(nn.Module):
+class MLP(Module):
     def __init__(self, n_in, n_state, resid_dropout=0.0, afn='quick_gelu', zero_out=False, init_scale=1.0):
         super().__init__()
         self.c_fc = Conv1D(n_in, n_state, init_scale=init_scale)
