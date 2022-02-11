@@ -122,7 +122,7 @@ class BaseTransformerBuilder(BaseBuilder):
 
     @activation.setter
     def activation(self, val):
-        activations = ["relu", "gelu"]
+        activations = ["relu", "gelu", "quick_gelu"]
         if val not in activations:
             raise ValueError(("{!r} is not one of the availabel activation "
                               "types {!r}").format(val, activations))
