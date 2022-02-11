@@ -12,7 +12,7 @@ In all cases the batch dimension is first and the sequence dimension is second.
 
 import torch
 from torch.nn import Dropout, LayerNorm, Linear, Module, ModuleList
-from fast_transformer.ops import Conv1D, ACT_FNS, LayerNorm
+from .ops import Conv1D, ACT_FNS, LayerNorm
 import torch.nn.functional as F
 
 from .events import EventDispatcher
