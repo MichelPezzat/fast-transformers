@@ -60,10 +60,10 @@ class RecurrentTransformerEncoderLayer(Module):
                           module for dispatching events (default: the default
                           global dispatcher)
     """
-    def __init__(self, attention, d_model, dropout=0.1,
+    def __init__(self, attention, d_model, d_ff=None, dropout=0.1,
                  activation="relu", event_dispatcher=""):
         super(RecurrentTransformerEncoderLayer, self).__init__()
-        #d_ff = d_ff or 4*d_model
+        d_ff = d_ff or 4*d_model
         self.attention = attention
         #self.linear1 = Linear(d_model, d_ff)
         #self.linear2 = Linear(d_ff, d_model)
@@ -72,7 +72,7 @@ class RecurrentTransformerEncoderLayer(Module):
         #self.dropout = Dropout(dropout)
         self.dropout = nn.Dropout(dropout) if dropout > 0.0 else lambda x: x
         #self.activation = F.relu if activation == "relu" else F.gelu
-        self.mlp = MLP(n_in=d_model, n_state=int(m_mlp * d_model),
+        self.mlp = MLP(n_in=d_model, n_state=dff,
                        resid_dropout=dropout,
                        afn=activation,
                        zero_out=zero_out, init_scale=init_scale)
