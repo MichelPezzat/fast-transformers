@@ -91,7 +91,7 @@ class AttentionLayer(Module):
         """
         # Extract the dimensions into local variables
         N, L, _ = x.shape
-
+        H = self.n_heads
 
         # Project the queries/keys/values
         #queries = self.query_projection(queries).view(N, L, H, -1)
@@ -99,13 +99,13 @@ class AttentionLayer(Module):
         #values = self.value_projection(values).view(N, S, H, -1)
 
         x = self.c_attn(x)
-        _, S, _ = keys.shape
-        H = self.n_heads
+
+
 
         queries, keys, values = x.chunk(3, dim=2)
         queries = queries.view(N, L, H, -1)
-        keys = keys.view(N, S, H, -1)
-        values = values.view(N, S, H, -1)
+        keys = keys.view(N, L, H, -1)
+        values = values.view(N, L, H, -1)
 
 
         # Let the world know of the qkv
