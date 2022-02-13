@@ -100,6 +100,7 @@ class AttentionLayer(Module):
 
         x = self.c_attn(x)
 
+
         queries, keys, values = x.chunk(3, dim=2)
         queries = queries.view(N, L, H, -1)
         keys = keys.view(N, L, H, -1)

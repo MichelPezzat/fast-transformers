@@ -98,4 +98,4 @@ class Conv1D(nn.Module):
         size_out = (*x.size()[:-1], self.n_out)
         x = t.addmm(self.b.type_as(x), x.view(-1, x.size(-1)), self.w.type_as(x)) # If x if float then float else half
         x = x.view(*size_out)
-        return 
+        return x
