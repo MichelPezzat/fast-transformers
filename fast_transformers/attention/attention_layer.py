@@ -107,6 +107,8 @@ class AttentionLayer(Module):
         keys = keys.view(N, L, H, -1)
         values = values.view(N, L, H, -1)
 
+        print(queries.shape)
+
 
         # Let the world know of the qkv
         self.event_dispatcher.dispatch(QKVEvent(self, queries, keys, values))
