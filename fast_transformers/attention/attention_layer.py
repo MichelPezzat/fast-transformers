@@ -125,5 +125,8 @@ class AttentionLayer(Module):
 
         print(new_values.shape)
 
-        # Project the output and return
-        return self.c_proj(new_values)
+        # Project the output and return 
+        new_values = self.c_proj(new_values)
+
+        print(new_values.shape)
+        return new_values
