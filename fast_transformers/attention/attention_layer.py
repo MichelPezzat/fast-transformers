@@ -107,7 +107,7 @@ class AttentionLayer(Module):
         keys = keys.view(N, L, H, -1)
         values = values.view(N, L, H, -1)
 
-        print(queries.shape)
+        print(queries.shape, keys.shape, values.shape)
 
 
         # Let the world know of the qkv
@@ -122,6 +122,8 @@ class AttentionLayer(Module):
             query_lengths,
             key_lengths
         ).view(N, L, -1)
+
+        print(new_values.shape)
 
         # Project the output and return
         return self.c_proj(new_values)
