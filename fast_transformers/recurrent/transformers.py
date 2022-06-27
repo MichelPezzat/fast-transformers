@@ -70,7 +70,7 @@ class RecurrentTransformerEncoderLayer(Module):
         self.norm1 = LayerNorm(d_model)
         self.norm2 = LayerNorm(d_model)
         #self.dropout = Dropout(dropout)
-        self.dropout = nn.Dropout(dropout) if dropout > 0.0 else lambda x: x
+        #self.dropout = nn.Dropout(dropout) if dropout > 0.0 else lambda x: x
         #self.activation = F.relu if activation == "relu" else F.gelu
         self.mlp = MLP(n_in=d_model, n_state=dff,
                        resid_dropout=dropout,
@@ -95,7 +95,7 @@ class RecurrentTransformerEncoderLayer(Module):
 
         # Run the self attention and add it to the input
         a, state = self.attention(self.norm1(x), state)
-        a =  self.dropout(a)
+        #a =  self.dropout(a)
 
         # Run the fully connected part of the layer
         y = self.mlp(self.norm2(x + a))

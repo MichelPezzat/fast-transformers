@@ -61,12 +61,12 @@ class TransformerEncoderLayer(Module):
         self.attention = attention
         #self.linear1 = Linear(d_model, d_ff)
         #self.linear2 = Linear(d_ff, d_model)
-        self.norm1 = LayerNorm(d_model)
-        self.norm2 = LayerNorm(d_model)
+        self.ln_0 = LayerNorm(d_model)
+        self.ln_1 = LayerNorm(d_model)
         #self.dropout = Dropout(dropout)
         self.dropout = nn.Dropout(dropout) if dropout > 0.0 else lambda x: x
         #self.activation = getattr(F, activation)
-        self.mlp = MLP(n_in=d_model, n_state=d_ff,
+        self.mlp = MLP(n_in=n_in, n_state=d_ff,
                        resid_dropout=dropout,
                        afn=activation,
                        zero_out=zero_out, init_scale=init_scale)
@@ -95,14 +95,14 @@ class TransformerEncoderLayer(Module):
 
         # Run self attention and add it to the input
         a =  self.dropout(self.attention(
-            self.norm1(x),
+            self.ln_0(x),
             attn_mask=attn_mask,
             query_lengths=length_mask,
             key_lengths=length_mask
         ))
 
         # Run the fully connected part of the layer
-        y = self.mlp(self.norm2(x + a))
+        y = self.mlp(self.ln_1(x + a))
         #y = self.dropout(self.activation(self.linear1(y)))
         #y = self.dropout(self.linear2(y))
 
