@@ -64,7 +64,7 @@ class TransformerEncoderLayer(Module):
         self.ln_0 = LayerNorm(d_model)
         self.ln_1 = LayerNorm(d_model)
         #self.dropout = Dropout(dropout)
-        self.dropout = nn.Dropout(dropout) if dropout > 0.0 else lambda x: x
+        #self.dropout = nn.Dropout(dropout) if dropout > 0.0 else lambda x: x
         #self.activation = getattr(F, activation)
         self.mlp = MLP(n_in=n_in, n_state=d_ff,
                        resid_dropout=dropout,
@@ -94,12 +94,12 @@ class TransformerEncoderLayer(Module):
             LengthMask(x.new_full((N,), L, dtype=torch.int64))
 
         # Run self attention and add it to the input
-        a =  self.dropout(self.attention(
+        a =  self.attention(
             self.ln_0(x),
             attn_mask=attn_mask,
             query_lengths=length_mask,
             key_lengths=length_mask
-        ))
+        )
 
         # Run the fully connected part of the layer
         y = self.mlp(self.ln_1(x + a))

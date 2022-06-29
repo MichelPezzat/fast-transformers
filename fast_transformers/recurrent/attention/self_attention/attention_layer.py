@@ -37,7 +37,7 @@ class RecurrentAttentionLayer(Module):
                           global dispatcher)
     """
     def __init__(self, attention, d_model, n_heads, d_keys=None,
-                 d_values=None, event_dispatcher=""):
+                 d_values=None, event_dispatcher="", zero_out=False, init_scale=1.0):
         super(RecurrentAttentionLayer, self).__init__()
 
         # Fill d_keys and d_values
@@ -54,7 +54,7 @@ class RecurrentAttentionLayer(Module):
         self.n_heads = n_heads
         self.event_dispatcher = EventDispatcher.get(event_dispatcher)
 
-    def forward(self, query, key, value, state=None, memory=None):
+    def forward(self, x, state=None, memory=None):
         """Apply attention to the passed in query/key/value after projecting
         them to multiple heads.
 
@@ -83,7 +83,7 @@ class RecurrentAttentionLayer(Module):
         #query = self.query_projection(query)
         #key = self.key_projection(key)
         #value = self.value_projection(value)
-
+        x = self.c_attn(x)
         query, key, value = x.chunk(3, dim=2)
 
         # Reshape them into many heads and compute the attention

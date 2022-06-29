@@ -61,7 +61,8 @@ class RecurrentTransformerEncoderLayer(Module):
                           global dispatcher)
     """
     def __init__(self, attention, d_model, d_ff=None, dropout=0.1,
-                 activation="relu", event_dispatcher=""):
+                 activation="relu", event_dispatcher="" zero_out=False,
+                 init_scale=1.0):
         super(RecurrentTransformerEncoderLayer, self).__init__()
         d_ff = d_ff or 4*d_model
         self.attention = attention
