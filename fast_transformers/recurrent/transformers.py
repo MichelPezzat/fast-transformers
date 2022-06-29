@@ -73,7 +73,7 @@ class RecurrentTransformerEncoderLayer(Module):
         #self.dropout = Dropout(dropout)
         #self.dropout = nn.Dropout(dropout) if dropout > 0.0 else lambda x: x
         #self.activation = F.relu if activation == "relu" else F.gelu
-        self.mlp = MLP(n_in=d_model, n_state=dff,
+        self.mlp = MLP(n_in=d_model, n_state=d_ff,
                        resid_dropout=dropout,
                        afn=activation,
                        zero_out=zero_out, init_scale=init_scale)
