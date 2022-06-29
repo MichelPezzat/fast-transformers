@@ -32,7 +32,7 @@ class MLP(Module):
         self.c_fc = Conv1D(n_in, n_state, init_scale=init_scale)
         self.c_proj = Conv1D(n_state, n_in, zero_out, init_scale=init_scale)
         self.act = ACT_FNS[afn]
-        self.resid_dropout = nn.Dropout(resid_dropout) if resid_dropout > 0.0 else lambda x: x
+        self.resid_dropout = Dropout(resid_dropout) if resid_dropout > 0.0 else lambda x: x
 
     def forward(self, x):
         m = self.act(self.c_fc(x))
