@@ -7,7 +7,7 @@
 """Similar to the corresponding module in fast_transformers.attention, this
 module performs all the query, key, value projections and output projections
 leaving the implementation of the attention to the inner attention module."""
-
+import torch as t
 from torch.nn import Linear, Module
 
 from ....events import EventDispatcher
@@ -85,6 +85,9 @@ class RecurrentAttentionLayer(Module):
         #value = self.value_projection(value)
         x = self.c_attn(x)
         query, key, value = x.chunk(3, dim=2)
+        query = t.squeeze(query)
+        key = t.squeeze(key)
+        value = t.squeeze(value)
 
         # Reshape them into many heads and compute the attention
         N, _, D = query.shape
