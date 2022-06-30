@@ -90,7 +90,7 @@ class RecurrentAttentionLayer(Module):
         value = t.squeeze(value)
 
         # Reshape them into many heads and compute the attention
-        N, _, D = query.shape
+        N, D = query.shape
         H = self.n_heads
         new_value, state = self.inner_attention(
             query.view(N, H, -1),
