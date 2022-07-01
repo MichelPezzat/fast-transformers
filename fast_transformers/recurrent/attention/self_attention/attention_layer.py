@@ -85,6 +85,7 @@ class RecurrentAttentionLayer(Module):
         #value = self.value_projection(value)
         x = self.c_attn(x)
         query, key, value = x.chunk(3, dim=2)
+        print(query.shape)
         query = t.squeeze(query,1)
         key = t.squeeze(key,1)
         value = t.squeeze(value,1)
